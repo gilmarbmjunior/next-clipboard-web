@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 const useSend = () => {
     const [text, setText] = useState('')
     const [sending, setSending] = useState(false)
+    const [formatting, setFormatting] = useState(false)
 
     useEffect(() => {
         let active = true
@@ -37,11 +38,28 @@ const useSend = () => {
         }
     }
 
+    const format = async () => {
+        setFormatting(true)
+        try {
+            const response = await fetch('/api/format', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            })
+            const data = await response.json()
+            if (typeof data.text === 'string') setText(data.text)
+        } finally {
+            setFormatting(false)
+        }
+    }
+
     return {
         text,
         setText,
         send,
-        sending
+        sending,
+        format,
+        formatting
     }
 }
 

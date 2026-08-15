@@ -4,7 +4,7 @@ import useSend from "./usePage";
 import LineTextArea from "@/components/LineTextArea";
 
 export default function Send() {
-  const {text, setText, send, sending} = useSend();
+  const {text, setText, send, sending, format, formatting} = useSend();
 
   return (
     <div className="w-full h-full flex flex-col p-4 gap-4">
@@ -16,7 +16,10 @@ export default function Send() {
         </div>
       </div>
       <LineTextArea className="flex-1" value={text} onChange={setText} placeholder="Insira o texto a ser compartilhado aqui e clique em enviar." />
-      <button className="border border-gray-300 hover:bg-gray-200 bg-gray-100 active:bg-gray-300" onClick={send} disabled={sending}>Enviar</button>
+      <div className="flex flex-row items-center gap-4">
+        <button className="border border-gray-300 hover:bg-gray-200 bg-gray-100 active:bg-gray-300 px-4" onClick={format} disabled={formatting || sending}>{formatting ? "Limpando Comentários e Formatando..." : "Limpar Comentários e Formatar"}</button>
+        <button className="flex-1 border border-gray-300 hover:bg-gray-200 bg-gray-100 active:bg-gray-300 px-4" onClick={send} disabled={sending || formatting}>Enviar</button>
+      </div>
     </div>
   );
 }
