@@ -1,6 +1,7 @@
 "use client";
 
 import useSend from "./usePage";
+import LineTextArea from "@/components/LineTextArea";
 
 export default function Send() {
   const {text, setText, send, sending} = useSend();
@@ -14,7 +15,7 @@ export default function Send() {
           <input type="text" placeholder="000000" className="border"/>
         </div>
       </div>
-      <textarea className="flex-1 resize-none border border-gray-500 focus:outline-none p-4 text-gray-500" value={text} onChange={(e) => setText(e.target.value)} placeholder="Insira o texto a ser compartilhado aqui e clique em enviar."></textarea>
+      <LineTextArea className="flex-1" value={text} onChange={setText} placeholder="Insira o texto a ser compartilhado aqui e clique em enviar." />
       <button className="border border-gray-300 hover:bg-gray-200 bg-gray-100 active:bg-gray-300" onClick={send} disabled={sending}>Enviar</button>
     </div>
   );

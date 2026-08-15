@@ -1,6 +1,7 @@
 "use client";
 
 import useReceive from "./usePage";
+import LineTextArea from "@/components/LineTextArea";
 
 export default function Receive() {
   const {text, setText} = useReceive();
@@ -14,7 +15,7 @@ export default function Receive() {
           <input type="text" placeholder="000000" className="border"/>
         </div>
       </div>
-      <textarea className="flex-1 resize-none border border-gray-500 focus:outline-none p-4 text-gray-500" readOnly value={text} onChange={(e) => setText(e.target.value)} placeholder="O texto compartilhado aparece aqui."></textarea>
+      <LineTextArea className="flex-1" readOnly value={text} onChange={setText} placeholder="O texto compartilhado aparece aqui." />
     </div>
   );
 }
