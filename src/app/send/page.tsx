@@ -12,7 +12,7 @@ export default function Send() {
         <span className="mr-auto">Área de Transferência Compartilhada</span>
         <div className="flex flex-row gap-4">
           <span>PIN</span>
-          <input type="text" placeholder="000000" className="border text-center"/>
+          <input type="text" placeholder="000000" className="border border-gray-300 text-center" disabled/>
         </div>
       </div>
       <LineTextArea className="flex-1" value={text} onChange={setText} placeholder="Insira o texto a ser compartilhado aqui e clique em enviar." />
