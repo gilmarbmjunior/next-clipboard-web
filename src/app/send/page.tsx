@@ -1,4 +1,8 @@
+import useSend from "./usePage";
+
 export default function Send() {
+  const {text, setText} = useSend();
+
   return (
     <div className="w-full h-full flex flex-col p-4 gap-4">
       <span>Área de Transferência Compartilhada</span>
