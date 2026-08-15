@@ -15,7 +15,7 @@ export default function Receive() {
           <input type="text" placeholder="000000" className="border"/>
         </div>
       </div>
-      <LineTextArea className="flex-1" readOnly value={text} onChange={setText} placeholder="O texto compartilhado aparece aqui." />
+      <LineTextArea className="flex-1" readOnly value={text} onChange={setText} placeholder="O texto compartilhado aparecerá aqui." />
     </div>
   );
 }
