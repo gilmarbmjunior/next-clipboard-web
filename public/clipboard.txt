@@ -1,0 +1,178 @@
+// ---------------------------------------------------------------------------
+// Tipos da "consulta refinada" (READ-REQUEST)
+// ---------------------------------------------------------------------------
+// Representa o corpo de uma requisição de leitura mais elaborada para os
+// endpoints, permitindo que o cliente diga exatamente o que quer:
+//   - quais colunas retornar (select)
+//   - filtros encadeados com AND/OR e operadores variados (where)
+//   - ordenação (order_by)
+//   - paginação (limit/offset)
+// Essas estruturas viram uma cláusula WHERE/SELECT/ORDER BY/LIMIT no SQL.
+
+/**
+ * Corpo completo da consulta refinada.
+ * É o que um endpoint de listagem aceita quando o cliente quer
+ * controlar a busca (em vez de simplesmente "SELECT * FROM ...").
+ */
+export type ReadRequest = {
+  // Colunas que devem ser retornadas (ex.: ["id", "nome"]).
+  // Se vazio ou omitido, o padrão é todas as colunas.
+  select?: string[];
+
+  // Árvore de filtros (condições simples ou grupos AND/OR aninhados).
+  // Se omitido, não há filtro (busca todos os registros).
+  where?: WhereNode;
+
+  // Critérios de ordenação (coluna + direção), aplicados na ordem da lista.
+  // Se omitido, o padrão é ORDER BY id ASC. Se vazio, sem ordenação.
+  order_by?: OrderBy[];
+
+  // Quantidade máxima de registros por página.
+  limit?: number;
+
+  // Quantos registros pular (a partir de onde a página começa).
+  offset?: number;
+};
+
+/**
+ * Operadores aceitos em uma condição de filtro.
+ * São os mesmos operadores do SQL, permitindo comparações, busca textual,
+ * listas de valores, faixas e verificação de nulo.
+ */
+export type WhereOperator =
+  | "=" // igual
+  | "<" // menor que
+  | ">" // maior que
+  | "<=" // menor ou igual
+  | ">=" // maior ou igual
+  | "<>" // diferente
+  | "LIKE" // busca parcial (ex.: LIKE '%Silva%')
+  | "NOT LIKE" // negação da busca parcial
+  | "ILIKE" // busca parcial sem diferenciar maiúsculas/minúsculas
+  | "NOT ILIKE" // negação da busca parcial sem diferenciar maiúsculas/minúsculas
+  | "IN" // pertence a uma lista de valores
+  | "NOT IN" // não pertence à lista
+  | "BETWEEN" // dentro de um intervalo (valor: [menor, maior])
+  | "IS NULL" // é nulo (o valor não é usado)
+  | "IS NOT NULL"; // não é nulo (o valor não é usado)
+
+/**
+ * Conectivo lógico usado para unir as condições de um grupo.
+ * Define como as condições daquele nível devem ser combinadas no SQL.
+ */
+export type WhereLogic = "AND" | "OR";
+
+/**
+ * Condição simples: compara uma coluna com um valor usando um operador.
+ * Ex.: { column: "uf", operator: "=", value: "SP" }
+ *      -> "uf = $1"  (com valor "SP")
+ */
+export type WhereCondition = {
+  // Nome da coluna que será filtrada (ex.: "uf", "data_nascimento").
+  column: string;
+
+  // Operador de comparação aplicado sobre a coluna.
+  operator: WhereOperator;
+
+  // Valor usado na comparação (ou o intervalo/lista, dependendo do operador).
+  value: unknown;
+};
+
+/**
+ * Grupo de condições: une vários "WhereNode" (condições e/ou subgrupos)
+ * usando um único conectivo lógico (AND ou OR).
+ * Ex.: { logic: "AND", conditions: [cond1, cond2] }
+ *      -> "(cond1 AND cond2)"
+ * Permite construir filtros aninhados com parênteses, como:
+ *   (uf = 'SP' OR uf = 'RJ') AND nome LIKE '%a%'
+ */
+export type WhereGroup = {
+  // Conectivo que une os itens abaixo (AND ou OR).
+  logic: WhereLogic;
+
+  // Lista de nós filhos: podem ser condições simples ou outros grupos
+  // (é daí que vem a recursão / os parênteses do filtro).
+  conditions: WhereNode[];
+};
+
+/**
+ * Nó da árvore de filtros: uma condição simples OU um grupo de condições.
+ * Como WhereGroup aceita WhereNode[], as estruturas podem se aninhar
+ * indefinidamente, formando filtros complexos.
+ */
+export type WhereNode = WhereCondition | WhereGroup;
+
+/**
+ * Direção da ordenação.
+ */
+export type OrderDirection = "ASC" | "DESC";
+
+/**
+ * Critério de ordenação da consulta.
+ * Ex.: { column: "nome", direction: "ASC" }
+ *      -> "ORDER BY nome ASC"
+ */
+export interface OrderBy {
+  // Coluna usada como critério de ordenação.
+  column: string;
+
+  // Direção: crescente (ASC) ou decrescente (DESC).
+  direction: OrderDirection;
+}
+
+/**
+ * Corpo da resposta de uma consulta refinada (READ-REQUEST).
+ * É o que o endpoint de listagem devolve ao cliente depois de processar
+ * o ReadRequest: um "espelho" dos parâmetros aplicados (select, where,
+ * order_by, limit, offset) + a quantidade de registros e as linhas.
+ * Espelhar os parâmetros ajuda o cliente a saber exatamente o que foi
+ * executado no servidor.
+ */
+export interface ReadResponse {
+    // Mensagem de acompanhamento da resposta (ex.: "Registros encontrados").
+    message: string;
+
+    // Colunas que foram retornadas (mesmo valor enviado no ReadRequest).
+    select: string[];
+
+    // Filtros aplicados na consulta.
+    //   - WhereNode : o filtro (condição simples ou árvore AND/OR) enviado.
+    //   - null      : quando o cliente não enviou o campo "where".
+    where: WhereNode | null;
+
+    // Critérios de ordenação aplicados, ou null quando não houve ordenação.
+    // É uma lista porque pode ordenar por mais de uma coluna.
+    order_by: OrderBy[] | null;
+
+    // Quantidade máxima de registros retornados, ou null se não limitado.
+    limit: number | null;
+
+    // Quantos registros foram pulados (paginação), ou null se não pulou nada.
+    offset: number | null;
+
+    // Total de linhas encontradas pela consulta.
+    rows_count: number;
+
+    // As linhas propriamente ditas, cada uma como um objeto
+    // { coluna: valor } (ex.: [{ id: 1, nome: "SP" }, ...]).
+    result: Record<string, unknown>[];
+}
+
+/**
+ * Consulta refinada já "normalizada" (pronta para virar SQL).
+ * É o que o normalizador (05-normalizeReadRequest.ts) devolve e o que o
+ * construtor de SQL (04-buildReadQuery.ts) recebe. Diferente do ReadRequest,
+ * aqui todos os campos opcionais já foram preenchidos com os valores padrão:
+ *   - select   : vazio            -> todas as colunas
+ *   - where    : omitido          -> sem filtro
+ *   - order_by : preenchido       -> ordenação aplicada
+ *   - limit    : omitido          -> sem limite
+ *   - offset   : omitido          -> sem pulo
+ */
+export type ResolvedReadRequest = {
+  select: string[];
+  where?: WhereNode;
+  order_by: OrderBy[];
+  limit?: number;
+  offset?: number;
+};
